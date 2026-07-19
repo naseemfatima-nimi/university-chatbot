@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>University AI Assistant</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #0a0a0a;
+    --panel: #111111;
+    --line: #2a2a2a;
+    --fg: #f2f2ee;
+    --muted: #8a8a86;
+    --white: #ffffff;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Inter', sans-serif;
+  }
+
+  body{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .terminal{
+    width: 100%;
+    max-width: 760px;
+    height: 88vh;
+    max-height: 780px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px #000, 0 30px 60px rgba(0,0,0,0.6);
+  }
+
+  /* ---------- Title bar ---------- */
+  .titlebar{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    background: #0d0d0d;
+  }
+
+  .titlebar-left{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .dots{ display: flex; gap: 6px; }
+  .dot{
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 1px solid var(--muted);
+    background: transparent;
+  }
+
+  .titlebar-name{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+
+  .titlebar-actions{
+    display: flex;
+    gap: 6px;
+  }
+
+  .tbtn{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--fg);
+    background: transparent;
+    border: 1px solid var(--line);
+    padding: 6px 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .tbtn:hover{
+    background: var(--fg);
+    color: #0a0a0a;
+    border-color: var(--fg);
+  }
+
+  /* ---------- Chat log ---------- */
+  .log{
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 20px 8px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .log::-webkit-scrollbar{ width: 8px; }
+  .log::-webkit-scrollbar-thumb{ background: var(--line); }
+  .log::-webkit-scrollbar-track{ background: transparent; }
+
+  .banner{
+    color: var(--muted);
+    white-space: pre;
+    margin-bottom: 14px;
+    font-size: 12px;
+  }
+
+  .line{
+    margin-bottom: 10px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .prompt{
+    flex-shrink: 0;
+    color: var(--muted);
+  }
+  .prompt.user{ color: var(--white); }
+  .prompt.bot{ color: var(--muted); }
+
+  .msg{ white-space: pre-wrap; word-break: break-word; }
+  .msg.user{ color: var(--fg); }
+  .msg.bot{ color: var(--fg); }
+
+  .divider{
+    color: var(--line);
+    margin: 6px 0 12px 0;
+  }
+
+  /* ---------- Input row ---------- */
+  .inputrow{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--line);
+    background: #0d0d0d;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .caret{
+    color: var(--white);
+    font-size: 14px;
+  }
+
+  #userInput{
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--fg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13.5px;
+    caret-color: var(--white);
+  }
+  #userInput::placeholder{ color: var(--muted); }
+
+  #sendBtn{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #0a0a0a;
+    background: var(--fg);
+    border: 1px solid var(--fg);
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+  #sendBtn:disabled{
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  /* ---------- Footer ---------- */
+  .footer{
+    padding: 8px 20px 14px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+    border-top: 1px solid var(--line);
+    background: #0d0d0d;
+  }
+
+  @media (max-width: 520px){
+    body{ padding: 0; }
+    .terminal{ height: 100vh; max-height: none; border: none; }
+    .titlebar-actions .tbtn span.full{ display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="terminal">
+  <div class="titlebar">
+    <div class="titlebar-left">
+      <div class="dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <div class="titlebar-name">university_assistant.exe</div>
+    </div>
+    <div class="titlebar-actions">
+      <button class="tbtn" id="btnCommands">Commands</button>
+      <button class="tbtn" id="btnAbout">About</button>
+      <button class="tbtn" id="btnDownload">Download<span class="full"> Log</span></button>
+      <button class="tbtn" id="btnRestart">Restart</button>
+    </div>
+  </div>
+
+  <div class="log" id="log">
+    <div class="banner">===================================
+ WELCOME TO UNIVERSITY AI CHATBOT
+===================================</div>
+  </div>
+
+  <div class="inputrow">
+    <span class="caret">&gt;</span>
+    <input type="text" id="userInput" autocomplete="off" placeholder="Enter your name..." />
+    <button id="sendBtn">Send</button>
+  </div>
+
+  <div class="footer">RULE-BASED · OFFLINE · TYPE "HELP" FOR TOPICS</div>
+</div>
+
+<script>
+(function(){
+  // ---------------- Knowledge base (mirrors the C++ version) ----------------
+  const knowledgeBase = {
+    "hello": "Hello! How can I help you?",
+    "hi": "Hi there! What would you like to know?",
+    "good morning": "Good morning! Hope you have a productive day.",
+    "good evening": "Good evening! How can I assist you tonight?",
+
+    "admission": "Admissions open every Fall and Spring semester. Visit the admission office or the university website for the application form.",
+    "fee": "The semester fee depends on your program. Please check the finance office portal for the exact fee structure.",
+    "hostel": "Hostel facilities are available for both boys and girls. Contact the hostel warden's office for room allocation.",
+    "library": "The university library is open from 8 AM to 8 PM on weekdays and has both physical books and digital resources.",
+    "exam": "Exams are usually held at the end of each semester. Check the exam department notice board for the datesheet.",
+    "result": "Results are announced by the examination department and posted on the student portal.",
+    "scholarship": "Merit and need-based scholarships are available. Apply through the scholarship office before the deadline.",
+
+    "programming": "Programming is the process of writing instructions for a computer to perform a task.",
+    "c++": "C++ is a powerful general-purpose programming language that supports both procedural and object-oriented programming.",
+    "oop": "OOP stands for Object-Oriented Programming. It is based on concepts like classes, objects, inheritance, and polymorphism.",
+    "database": "A database is an organized collection of data that can be easily accessed, managed, and updated.",
+    "ai": "AI stands for Artificial Intelligence. It enables computers to mimic human intelligence and make decisions.",
+    "statistics": "Statistics is the branch of mathematics dealing with data collection, analysis, interpretation, and presentation.",
+
+    "time": "I don't have access to a real-time clock, but you can check your system clock for the current time.",
+    "date": "I don't have access to today's date directly, but your device calendar can help you with that.",
+    "thank you": "You're welcome! Happy to help.",
+    "thanks": "You're welcome!",
+    "bye": "Goodbye! Have a great day."
+  };
+
+  const jokes = [
+    "Why do programmers prefer dark mode? Because light attracts bugs!",
+    "Why did the C++ developer go broke? Because he used up all his cache!",
+    "There are only 10 types of people: those who understand binary and those who don't.",
+    "Why do Java developers wear glasses? Because they don't see sharp!",
+    "A byte walks into a bar looking miserable. The bartender asks what's wrong, and the byte says: I've got a parity error."
+  ];
+
+  const quotes = [
+    "Success is the sum of small efforts, repeated day in and day out.",
+    "The only way to do great work is to love what you do.",
+    "Believe you can and you're halfway there.",
+    "Push yourself, because no one else is going to do it for you.",
+    "Don't watch the clock; do what it does. Keep going."
+  ];
+
+  // ---------------- State ----------------
+  let userName = "Friend";
+  let stage = "askName"; // askName -> chat
+  const chatLog = []; // { speaker, text }
+
+  // ---------------- DOM ----------------
+  const logEl = document.getElementById("log");
+  const inputEl = document.getElementById("userInput");
+  const sendBtn = document.getElementById("sendBtn");
+
+  document.getElementById("btnCommands").addEventListener("click", showCommands);
+  document.getElementById("btnAbout").addEventListener("click", showAbout);
+  document.getElementById("btnDownload").addEventListener("click", downloadLog);
+  document.getElementById("btnRestart").addEventListener("click", restart);
+
+  inputEl.addEventListener("keydown", function(e){
+    if (e.key === "Enter") handleSubmit();
+  });
+  sendBtn.addEventListener("click", handleSubmit);
+
+  // ---------------- Rendering helpers ----------------
+  function appendLine(prompt, promptClass, text, msgClass){
+    const row = document.createElement("div");
+    row.className = "line";
+
+    const p = document.createElement("span");
+    p.className = "prompt " + promptClass;
+    p.textContent = prompt;
+
+    const m = document.createElement("span");
+    m.className = "msg " + msgClass;
+    m.textContent = text;
+
+    row.appendChild(p);
+    row.appendChild(m);
+    logEl.appendChild(row);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function appendDivider(text){
+    const d = document.createElement("div");
+    d.className = "banner";
+    d.textContent = text;
+    logEl.appendChild(d);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function botSay(text){
+    appendLine("bot>", "bot", text, "bot");
+    chatLog.push({ speaker: "Bot", text: text });
+  }
+
+  function userSay(text){
+    appendLine((userName + " $").toLowerCase(), "user", text, "user");
+    chatLog.push({ speaker: userName, text: text });
+  }
+
+  // ---------------- Core rule engine (mirrors the C++ logic) ----------------
+  function getResponse(rawInput){
+    const input = rawInput.trim().toLowerCase();
+    if (!input) return "Please type something so I can help you.";
+
+    if (input.includes("i am sad") || input.includes("i'm sad") || input.includes("feeling sad")){
+      return "I'm sorry to hear that. Hope your day gets better, " + userName + ".";
+    }
+    if (input.includes("i am happy") || input.includes("i'm happy")){
+      return "That's wonderful to hear! Keep smiling, " + userName + "!";
+    }
+    if (input.includes("joke")){
+      return jokes[Math.floor(Math.random() * jokes.length)];
+    }
+    if (input.includes("motivation") || input.includes("quote")){
+      return quotes[Math.floor(Math.random() * quotes.length)];
+    }
+    if (input === "help" || input === "commands"){
+      return "Click Commands above to see the full topic list, or ask me about admission, fee, hostel, library, exam, result, scholarship, programming, c++, oop, database, ai, or statistics.";
+    }
+    if (input === "bye" || input === "exit" || input === "quit"){
+      return "Goodbye, " + userName + "! Have a great day. (You can keep chatting anytime.)";
+    }
+    if (Object.prototype.hasOwnProperty.call(knowledgeBase, input)){
+      return knowledgeBase[input];
+    }
+    for (const key in knowledgeBase){
+      if (Object.prototype.hasOwnProperty.call(knowledgeBase, key) && input.includes(key)){
+        return knowledgeBase[key];
+      }
+    }
+    return "Sorry, I don't know this answer. Please ask another question.";
+  }
+
+  // ---------------- Menu actions ----------------
+  function showCommands(){
+    appendDivider(
+      "===================== AVAILABLE TOPICS =====================\n" +
+      " Greetings   : hello, hi, good morning, good evening\n" +
+      " University  : admission, fee, hostel, library, exam, result, scholarship\n" +
+      " BS IT       : programming, c++, oop, database, ai, statistics\n" +
+      " General     : time, date, thank you, bye\n" +
+      " Fun         : joke, motivation / quote\n" +
+      " Mood        : try saying \"I am sad\"\n" +
+      " Other       : help\n" +
+      "=============================================================="
+    );
+  }
+
+  function showAbout(){
+    appendDivider(
+      "=========================================================\n" +
+      " Smart University Assistant\n" +
+      " A rule-based AI chatbot, ported from the original C++\n" +
+      " console version. It answers common questions about\n" +
+      " university life and BS IT coursework using keyword\n" +
+      " matching, entirely in your browser.\n" +
+      "========================================================="
+    );
+  }
+
+  function downloadLog(){
+    if (chatLog.length === 0){
+      botSay("No chat history to save yet.");
+      return;
+    }
+    const lines = chatLog.map(function(m){ return m.speaker + ": " + m.text; });
+    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "chat_history.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    botSay("Chat history downloaded as \"chat_history.txt\".");
+  }
+
+  function restart(){
+    logEl.innerHTML = '<div class="banner">===================================\n WELCOME TO UNIVERSITY AI CHATBOT\n===================================</div>';
+    chatLog.length = 0;
+    userName = "Friend";
+    stage = "askName";
+    inputEl.placeholder = "Enter your name...";
+    inputEl.value = "";
+    inputEl.focus();
+  }
+
+  // ---------------- Input handling ----------------
+  function handleSubmit(){
+    const value = inputEl.value;
+    if (!value.trim()) return;
+    inputEl.value = "";
+
+    if (stage === "askName"){
+      userName = value.trim() || "Friend";
+      userSay(value);
+      botSay("Welcome " + userName + "! Ask me about admission, fee, hostel, library, exam, results, scholarships, or BS IT topics. Type \"help\" anytime.");
+      inputEl.placeholder = "Type a message...";
+      stage = "chat";
+      return;
+    }
+
+    userSay(value);
+    const response = getResponse(value);
+    botSay(response);
+  }
+
+  // Focus input on load
+  inputEl.focus();
+})();
+</script>
+
+</body>
+</html>
